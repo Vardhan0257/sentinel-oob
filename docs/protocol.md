@@ -19,6 +19,6 @@ Fields:
 - timestamp (unix epoch)
 
 ## Silence Rule
-If no heartbeat is received for >30 seconds:
-- Treat as visibility loss
+If no heartbeat is received for more than 30 seconds:
+- Treat as loss of security visibility
 - Trigger out-of-band alert immediately
