@@ -5,8 +5,8 @@ from server.alerting import send_alert
 HEARTBEAT_TIMEOUT = 30   # seconds
 CHECK_INTERVAL = 5       # seconds
 
-# host_id -> last alert timestamp
-last_alert_sent = {}
+# host_id -> silence already alerted (bool)
+silence_alerted = {}
 
 
 def silence_detection_loop():
@@ -14,17 +14,17 @@ def silence_detection_loop():
         now = time.time()
 
         for host_id, last_seen in last_heartbeat.items():
-            if now - last_seen > HEARTBEAT_TIMEOUT:
-                locked = last_lock_state.get(host_id)
+            silent = now - last_seen > HEARTBEAT_TIMEOUT
+            locked = last_lock_state.get(host_id)
 
-                if locked is True or locked is None:
-                    last_alert = last_alert_sent.get(host_id)
-
-                    # Send only one alert per silence episode
-                    if last_alert is None or last_alert < last_seen:
-                        send_alert(
-                            f"Sentinel-OOB: endpoint {host_id} silent while unattended"
-                        )
-                        last_alert_sent[host_id] = now
+            if silent and (locked is True or locked is None):
+                if not silence_alerted.get(host_id, False):
+                    send_alert(
+                        f"Sentinel-OOB: endpoint {host_id} silent while unattended"
+                    )
+                    silence_alerted[host_id] = True
+            else:
+                # Reset latch when host speaks again
+                silence_alerted[host_id] = False
 
         time.sleep(CHECK_INTERVAL)
