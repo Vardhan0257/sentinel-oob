@@ -24,7 +24,6 @@ def silence_detection_loop():
                     )
                     silence_alerted[host_id] = True
             else:
-                # Reset latch when host speaks again
                 silence_alerted[host_id] = False
 
         time.sleep(CHECK_INTERVAL)
