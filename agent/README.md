@@ -1,27 +1,21 @@
 # Sentinel-OOB Agent (v0.1)
 
 ## Purpose
-Act as a dumb, noisy hostage.
-Continuously signal liveness and forward critical security events.
+A dumb, noisy endpoint process that emits heartbeats.
+Silence equals failure.
 
-## Technology Choice
+## Technology
 - Language: Go
-- Form: Windows Service
-- Reason: single static binary, low overhead, predictable runtime
+- Target OS: Windows
+- Form: Console app (service later)
 
-## Responsibilities
-- Emit heartbeat every fixed interval
-- Report Windows Defender detection events
-- Attach minimal context (host_id, lock state)
-- Store no security-critical state locally
+## Startup Contract
+- Starts immediately
+- Generates or loads a stable host_id
+- Begins heartbeat loop
+- Exits on fatal errors
 
-## Design Rules
-- No local audit logs
-- No retry queues
-- No buffering
-- Silence is failure
-
-## Explicit Non-Goals
-- Malware detection
-- Prevention or blocking
-- Local decision-making
+## What This Is NOT
+- Not a detector
+- Not a protector
+- Not resilient by itself
