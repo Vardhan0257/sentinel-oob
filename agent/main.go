@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
+	"unsafe"
 
 	"github.com/google/uuid"
 )
@@ -16,12 +18,10 @@ func getHostID() (string, error) {
 
 	path := filepath.Join(dir, "sentinel-oob-host-id")
 
-	// If host_id already exists, reuse it
 	if data, err := os.ReadFile(path); err == nil {
 		return string(data), nil
 	}
 
-	// Otherwise generate and persist
 	id := uuid.New().String()
 	if err := os.WriteFile(path, []byte(id), 0600); err != nil {
 		return "", err
@@ -30,11 +30,34 @@ func getHostID() (string, error) {
 	return id, nil
 }
 
+// Windows lock state detection
+func isSessionLocked() (bool, error) {
+	user32 := syscall.NewLazyDLL("user32.dll")
+	proc := user32.NewProc("GetForegroundWindow")
+
+	hwnd, _, err := proc.Call()
+	if hwnd == 0 {
+		// No foreground window usually means locked session
+		return true, nil
+	}
+	if err != syscall.Errno(0) {
+		return false, err
+	}
+	return false, nil
+}
+
 func main() {
 	hostID, err := getHostID()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Sentinel-OOB agent host_id:", hostID)
+	locked, err := isSessionLocked()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Sentinel-OOB agent")
+	fmt.Println("host_id:", hostID)
+	fmt.Println("locked:", locked)
 }
