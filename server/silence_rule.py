@@ -1,16 +1,15 @@
 import time
-from state import last_heartbeat, last_lock_state
-from alerting import send_alert
+from server.state import last_heartbeat, last_lock_state
+from server.alerting import send_alert
 
-HEARTBEAT_TIMEOUT = 30  # seconds
-CHECK_INTERVAL = 5      # seconds
+HEARTBEAT_TIMEOUT = 30   # seconds
+CHECK_INTERVAL = 5       # seconds
+
+# host_id -> last alert timestamp
+last_alert_sent = {}
 
 
 def silence_detection_loop():
-    """
-    Periodically checks for endpoint silence.
-    Silence during locked or unknown state triggers escalation.
-    """
     while True:
         now = time.time()
 
@@ -19,8 +18,13 @@ def silence_detection_loop():
                 locked = last_lock_state.get(host_id)
 
                 if locked is True or locked is None:
-                    send_alert(
-                        f"Sentinel-OOB: endpoint {host_id} silent while unattended"
-                    )
+                    last_alert = last_alert_sent.get(host_id)
+
+                    # Send only one alert per silence episode
+                    if last_alert is None or last_alert < last_seen:
+                        send_alert(
+                            f"Sentinel-OOB: endpoint {host_id} silent while unattended"
+                        )
+                        last_alert_sent[host_id] = now
 
         time.sleep(CHECK_INTERVAL)
