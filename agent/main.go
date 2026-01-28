@@ -1,12 +1,30 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"syscall"
+	"time"
+
 	"github.com/google/uuid"
 )
+
+const (
+	serverURL   = "http://localhost:8000/heartbeat"
+	agentVersion = "0.1"
+	interval     = 10 * time.Second
+)
+
+type Heartbeat struct {
+	HostID       string  `json:"host_id"`
+	Timestamp    float64 `json:"timestamp"`
+	Locked       bool    `json:"locked"`
+	AgentVersion string  `json:"agent_version"`
+}
 
 func getHostID() (string, error) {
 	dir, err := os.UserConfigDir()
@@ -28,14 +46,12 @@ func getHostID() (string, error) {
 	return id, nil
 }
 
-// Windows lock state detection
 func isSessionLocked() (bool, error) {
 	user32 := syscall.NewLazyDLL("user32.dll")
 	proc := user32.NewProc("GetForegroundWindow")
 
 	hwnd, _, err := proc.Call()
 	if hwnd == 0 {
-		// No foreground window usually means locked session
 		return true, nil
 	}
 	if err != syscall.Errno(0) {
@@ -44,18 +60,49 @@ func isSessionLocked() (bool, error) {
 	return false, nil
 }
 
+func sendHeartbeat(hostID string) error {
+	locked, err := isSessionLocked()
+	if err != nil {
+		return err
+	}
+
+	hb := Heartbeat{
+		HostID:       hostID,
+		Timestamp:    float64(time.Now().Unix()),
+		Locked:       locked,
+		AgentVersion: agentVersion,
+	}
+
+	data, err := json.Marshal(hb)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(serverURL, "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("unexpected status: %s", resp.Status)
+	}
+
+	return nil
+}
+
 func main() {
 	hostID, err := getHostID()
 	if err != nil {
 		panic(err)
 	}
 
-	locked, err := isSessionLocked()
-	if err != nil {
-		panic(err)
-	}
+	fmt.Println("Sentinel-OOB agent started:", hostID)
 
-	fmt.Println("Sentinel-OOB agent")
-	fmt.Println("host_id:", hostID)
-	fmt.Println("locked:", locked)
+	for {
+		if err := sendHeartbeat(hostID); err != nil {
+			panic(err)
+		}
+		time.Sleep(interval)
+	}
 }
