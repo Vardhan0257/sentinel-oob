@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
-	"unsafe"
-
 	"github.com/google/uuid"
 )
 
