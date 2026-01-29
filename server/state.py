@@ -1,12 +1,15 @@
 """
-Sentinel-OOB Server State (v0.1)
+Sentinel-OOB Server State (v0.2)
 
-Holds in-memory state only.
+In-memory state only.
 No persistence. No logic.
 """
 
 # host_id -> last heartbeat timestamp
 last_heartbeat = {}
 
-# host_id -> last known lock state (True/False/None)
+# host_id -> last known lock state (True / False / None)
 last_lock_state = {}
+
+# host_id -> presence state (PRESENT / ABSENT / UNKNOWN)
+presence_state = {}
