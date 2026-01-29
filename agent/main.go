@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	serverURL   = "http://localhost:8000/heartbeat"
+	serverURL    = "http://localhost:8000/heartbeat"
 	agentVersion = "0.1"
 	interval     = 10 * time.Second
 )
@@ -26,6 +26,10 @@ type Heartbeat struct {
 	AgentVersion string  `json:"agent_version"`
 }
 
+/*
+Stable host_id persisted locally.
+One-time generation, reused forever.
+*/
 func getHostID() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
@@ -46,6 +50,10 @@ func getHostID() (string, error) {
 	return id, nil
 }
 
+/*
+Very simple presence heuristic:
+- No foreground window → assume locked / unattended
+*/
 func isSessionLocked() (bool, error) {
 	user32 := syscall.NewLazyDLL("user32.dll")
 	proc := user32.NewProc("GetForegroundWindow")
@@ -99,6 +107,7 @@ func main() {
 
 	fmt.Println("Sentinel-OOB agent started:", hostID)
 
+	// Blocking heartbeat loop — service compatible
 	for {
 		if err := sendHeartbeat(hostID); err != nil {
 			panic(err)
