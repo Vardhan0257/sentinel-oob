@@ -1,29 +1,23 @@
 # Sentinel-OOB Audit Integrity (v0.4)
 
 ## Goal
-Ensure security-relevant events cannot be silently erased after detection.
+Ensure alerts cannot be silently erased post-detection.
 
-## Design Choice
-Sentinel-OOB does not rely on local audit logs for security guarantees.
-
-## Rationale
-Any data stored solely on the endpoint is assumed deletable by a local attacker.
-
-## Audit Strategy
-- All alerts are transmitted off-host immediately
-- External systems (webhook / Telegram) act as the audit sink
-- Loss of connectivity is itself treated as a security signal
+## Strategy
+- Alerts leave the endpoint immediately
+- External systems act as audit sinks
+- Local logs are not trusted
 
 ## Properties
-- Tamper-evident by design
+- Tamper-evident
 - Not tamper-proof
-- Survives local process termination
-- Survives local log deletion
+- Survives agent termination
+- Survives log deletion
 
-## Explicit Limitations
-- No cryptographic immutability guarantees
+## Explicit Non-Guarantees
+- No cryptographic immutability
+- No forensic reconstruction
 - No blockchain or append-only local logs
-- No forensic reconstruction after full compromise
 
 ## Trust Boundary
-Audit trust begins only once the alert leaves the endpoint.
+Audit trust begins only once the alert leaves the host.
