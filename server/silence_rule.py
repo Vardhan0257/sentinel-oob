@@ -1,5 +1,5 @@
 import time
-from server.state import last_heartbeat, presence_state
+from server.state import last_heartbeat, presence_state, network_state
 from server.alerting import send_alert
 
 HEARTBEAT_TIMEOUT = 30
@@ -12,13 +12,27 @@ def silence_detection_loop():
         now = time.time()
 
         for host, ts in last_heartbeat.items():
-            if now - ts > HEARTBEAT_TIMEOUT:
-                state = presence_state.get(host, "UNKNOWN")
+            if now - ts <= HEARTBEAT_TIMEOUT:
+                continue
 
-                if state in ("ABSENT", "UNKNOWN") and host not in alerted:
-                    send_alert(
-                        f"Sentinel-OOB: {host} silent while {state.lower()}"
-                    )
-                    alerted.add(host)
+            presence = presence_state.get(host, "UNKNOWN")
+            network = network_state.get(host, "UNKNOWN")
+
+            # Determine escalation level
+            if presence == "ABSENT" and network == "UNTRUSTED":
+                level = "LEVEL 3"
+            elif presence in ("ABSENT", "UNKNOWN") and network == "TRUSTED":
+                level = "LEVEL 2"
+            elif presence == "UNKNOWN":
+                level = "LEVEL 2"
+            else:
+                level = "LEVEL 1"
+
+            if host not in alerted:
+                send_alert(
+                    f"Sentinel-OOB {level}: {host} silent "
+                    f"(presence={presence}, network={network})"
+                )
+                alerted.add(host)
 
         time.sleep(CHECK_INTERVAL)
