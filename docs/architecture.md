@@ -1,23 +1,38 @@
-# Architecture — Sentinel-OOB
-
-## Core Principle
-Silence is the signal.
+# Sentinel-OOB Architecture (v0.1)
 
 ## Components
 
-### Agent (Endpoint)
-- Runs as a Windows service
-- Sends periodic heartbeats
-- Forwards Defender security events
-- Stores no security-critical state locally
+### Endpoint Agent (Hostage)
+- Runs as a lightweight process
+- Emits periodic heartbeats
+- Reports lock/unlock state
+- Contains no decision logic
 
-### Server (Remote Listener)
-- Tracks last-seen heartbeat per host
-- Treats missing heartbeat as compromise
-- Triggers out-of-band alerts immediately
+### Server (Watchman)
+- Receives heartbeats and events
+- Tracks last-seen state per host
+- Detects silence using time-based rules
+- Escalates alerts out-of-band
 
-## Design Rules
-- Agent is dumb and noisy
-- Server is paranoid and stateful
-- No local audit trail; all events are off-host
-- Network isolation equals compromise
+### Alert Channel
+- Webhook / push / SMS / email
+- Off-host by design
+- Independent of endpoint state
+
+## Data Flow
+
+1. Agent sends heartbeat → Server
+2. Server updates in-memory state
+3. Silence detection loop evaluates time since last heartbeat
+4. If silence exceeds threshold during unattended state → alert
+5. Alert is delivered out-of-band
+
+## Trust Boundaries
+
+- Endpoint is untrusted after silence
+- Server is trusted until alert delivery
+- Alert channel is independent and external
+
+## Design Principle
+
+Silence is treated as a first-class security signal.
