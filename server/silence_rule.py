@@ -9,12 +9,11 @@ alerted = set()
 
 def silence_detection_loop():
     while True:
-        print("SILENCE LOOP ALIVE")
         now = time.time()
 
         for host, ts in last_heartbeat.items():
             if now - ts > HEARTBEAT_TIMEOUT:
-                locked = last_lock_state.get(host, True)
+                locked = True
                 if locked and host not in alerted:
                     send_alert(
                         f"Sentinel-OOB: {host} silent while unattended"
