@@ -2,7 +2,7 @@ from time import time
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from server.state import last_heartbeat, last_lock_state
+from server.state import last_heartbeat, last_lock_state, presence_state
 
 app = FastAPI(title="Sentinel-OOB Server")
 
@@ -16,6 +16,14 @@ class Heartbeat(BaseModel):
 def receive_heartbeat(hb: Heartbeat):
     last_heartbeat[hb.host_id] = time()
     last_lock_state[hb.host_id] = hb.locked
+
+    if hb.locked is True:
+        presence_state[hb.host_id] = "ABSENT"
+    elif hb.locked is False:
+        presence_state[hb.host_id] = "PRESENT"
+    else:
+        presence_state[hb.host_id] = "UNKNOWN"
+
     return {"status": "ok"}
 
 @app.post("/event")
