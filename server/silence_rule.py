@@ -1,5 +1,5 @@
 import time
-from server.state import last_heartbeat, last_lock_state
+from server.state import last_heartbeat, presence_state
 from server.alerting import send_alert
 
 HEARTBEAT_TIMEOUT = 30
@@ -13,10 +13,11 @@ def silence_detection_loop():
 
         for host, ts in last_heartbeat.items():
             if now - ts > HEARTBEAT_TIMEOUT:
-                locked = True
-                if locked and host not in alerted:
+                state = presence_state.get(host, "UNKNOWN")
+
+                if state in ("ABSENT", "UNKNOWN") and host not in alerted:
                     send_alert(
-                        f"Sentinel-OOB: {host} silent while unattended"
+                        f"Sentinel-OOB: {host} silent while {state.lower()}"
                     )
                     alerted.add(host)
 
