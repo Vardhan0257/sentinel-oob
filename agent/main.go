@@ -16,7 +16,7 @@ import (
 
 const (
 	serverURL    = "http://localhost:8000/heartbeat"
-	agentVersion = "0.1"
+	agentVersion = "0.2"
 	interval     = 10 * time.Second
 )
 
@@ -24,6 +24,7 @@ type Heartbeat struct {
 	HostID       string  `json:"host_id"`
 	Timestamp    float64 `json:"timestamp"`
 	Locked       bool    `json:"locked"`
+	Network      string  `json:"network"`
 	AgentVersion string  `json:"agent_version"`
 }
 
@@ -43,12 +44,14 @@ func (s *sentinelService) Execute(args []string, r <-chan svc.ChangeRequest, sta
 		select {
 		case <-ticker.C:
 			sendHeartbeat(s.hostID)
+
 		case c := <-r:
 			if c.Cmd == svc.Stop || c.Cmd == svc.Shutdown {
 				close(s.stopCh)
 				status <- svc.Status{State: svc.StopPending}
 				return false, 0
 			}
+
 		case <-s.stopCh:
 			status <- svc.Status{State: svc.StopPending}
 			return false, 0
@@ -90,6 +93,12 @@ func isSessionLocked() (bool, error) {
 	return false, nil
 }
 
+func getNetworkContext() string {
+	// v0.2 heuristic: Wi-Fi treated as untrusted
+	// Refined later
+	return "UNTRUSTED"
+}
+
 func sendHeartbeat(hostID string) {
 	locked, err := isSessionLocked()
 	if err != nil {
@@ -100,6 +109,7 @@ func sendHeartbeat(hostID string) {
 		HostID:       hostID,
 		Timestamp:    float64(time.Now().Unix()),
 		Locked:       locked,
+		Network:      getNetworkContext(),
 		AgentVersion: agentVersion,
 	}
 
