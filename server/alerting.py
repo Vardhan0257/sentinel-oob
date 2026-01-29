@@ -13,3 +13,5 @@ def send_alert(message: str):
     }
 
     requests.post(ALERT_WEBHOOK_URL, json=payload, timeout=5)
+
+    print("ALERT POST SENT")

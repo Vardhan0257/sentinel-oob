@@ -8,8 +8,8 @@ and escalating alerts.
 import threading
 import uvicorn
 
-from api import app
-from silence_rule import silence_detection_loop
+from server.api import app
+from server.silence_rule import silence_detection_loop
 
 if __name__ == "__main__":
     t = threading.Thread(target=silence_detection_loop, daemon=True)
