@@ -34,3 +34,39 @@
 
 ## Security Posture
 Sentinel-OOB assumes compromise on silence.
+
+# Sentinel-OOB Threat Model (v0.4)
+
+## Assets
+- Integrity of security alert delivery
+- Timely awareness of endpoint compromise
+- Off-host audit visibility
+
+## Attacker Capabilities
+- Local interactive access to endpoint
+- Ability to dismiss UI alerts
+- Ability to terminate user-space processes
+- Ability to unplug network temporarily
+
+## Attacker Limitations
+- No guaranteed kernel-level persistence
+- No control over external notification channels
+- No ability to retroactively delete off-host alerts
+- Limited time window before user notices escalation
+
+## Primary Threats Addressed
+- Silent dismissal of security alerts
+- Unattended endpoint compromise
+- Physical/local attacker suppressing UI warnings
+- Process termination of security agents
+
+## Explicit Non-Goals
+- Malware detection or prevention
+- Kernel-level rootkit defense
+- Protection after full system compromise
+- Guaranteed incident remediation
+
+## Design Assumption
+Silence during high-risk windows is treated as a security-relevant signal.
+
+Once kernel-level persistence is achieved, Sentinel-OOB provides no guarantees.
