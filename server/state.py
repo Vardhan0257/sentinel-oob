@@ -13,3 +13,6 @@ last_lock_state = {}
 
 # host_id -> presence state (PRESENT / ABSENT / UNKNOWN)
 presence_state = {}
+
+# host_id -> network context (TRUSTED / UNTRUSTED / UNKNOWN)
+network_state = {}
