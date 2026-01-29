@@ -1,17 +1,32 @@
 import os
 import requests
+from server.telegram import send_telegram_alert
 
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL")
 
-
 def send_alert(message: str):
-    if not ALERT_WEBHOOK_URL:
-        raise RuntimeError("ALERT_WEBHOOK_URL is not set")
+    delivered = False
 
-    payload = {
-        "text": message
-    }
+    # Webhook delivery (v0.2 compatibility)
+    if ALERT_WEBHOOK_URL:
+        try:
+            requests.post(
+                ALERT_WEBHOOK_URL,
+                json={"text": message},
+                timeout=5,
+            )
+            delivered = True
+        except Exception as e:
+            print(f"[ALERT] webhook failed: {e}")
 
-    requests.post(ALERT_WEBHOOK_URL, json=payload, timeout=5)
+    # Telegram delivery (v0.3)
+    try:
+        send_telegram_alert(message)
+        delivered = True
+    except Exception as e:
+        print(f"[ALERT] telegram failed: {e}")
 
-    print("ALERT POST SENT")
+    if not delivered:
+        raise RuntimeError("Alert delivery failed on all channels")
+
+    print("ALERT DELIVERED")
