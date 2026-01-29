@@ -2,7 +2,12 @@ from time import time
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from server.state import last_heartbeat, last_lock_state, presence_state
+from server.state import (
+    last_heartbeat,
+    last_lock_state,
+    presence_state,
+    network_state,
+)
 
 app = FastAPI(title="Sentinel-OOB Server")
 
@@ -23,6 +28,9 @@ def receive_heartbeat(hb: Heartbeat):
         presence_state[hb.host_id] = "PRESENT"
     else:
         presence_state[hb.host_id] = "UNKNOWN"
+
+    # v0.2 placeholder (intentional)
+    network_state[hb.host_id] = "UNKNOWN"
 
     return {"status": "ok"}
 
