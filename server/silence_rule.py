@@ -9,6 +9,7 @@ alerted = set()
 
 def silence_detection_loop():
     while True:
+        print("SILENCE LOOP ALIVE")
         now = time.time()
 
         for host, ts in last_heartbeat.items():
