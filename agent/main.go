@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,6 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/sys/windows/svc"
+	"golang.org/x/sys/windows/svc/debug"
 )
 
 const (
@@ -26,10 +27,35 @@ type Heartbeat struct {
 	AgentVersion string  `json:"agent_version"`
 }
 
-/*
-Stable host_id persisted locally.
-One-time generation, reused forever.
-*/
+type sentinelService struct {
+	hostID string
+	stopCh chan struct{}
+}
+
+func (s *sentinelService) Execute(args []string, r <-chan svc.ChangeRequest, status chan<- svc.Status) (bool, uint32) {
+	status <- svc.Status{State: svc.StartPending}
+	status <- svc.Status{State: svc.Running, Accepts: svc.AcceptStop | svc.AcceptShutdown}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			sendHeartbeat(s.hostID)
+		case c := <-r:
+			if c.Cmd == svc.Stop || c.Cmd == svc.Shutdown {
+				close(s.stopCh)
+				status <- svc.Status{State: svc.StopPending}
+				return false, 0
+			}
+		case <-s.stopCh:
+			status <- svc.Status{State: svc.StopPending}
+			return false, 0
+		}
+	}
+}
+
 func getHostID() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
@@ -50,10 +76,6 @@ func getHostID() (string, error) {
 	return id, nil
 }
 
-/*
-Very simple presence heuristic:
-- No foreground window → assume locked / unattended
-*/
 func isSessionLocked() (bool, error) {
 	user32 := syscall.NewLazyDLL("user32.dll")
 	proc := user32.NewProc("GetForegroundWindow")
@@ -68,10 +90,10 @@ func isSessionLocked() (bool, error) {
 	return false, nil
 }
 
-func sendHeartbeat(hostID string) error {
+func sendHeartbeat(hostID string) {
 	locked, err := isSessionLocked()
 	if err != nil {
-		return err
+		return
 	}
 
 	hb := Heartbeat{
@@ -83,20 +105,10 @@ func sendHeartbeat(hostID string) error {
 
 	data, err := json.Marshal(hb)
 	if err != nil {
-		return err
+		return
 	}
 
-	resp, err := http.Post(serverURL, "application/json", bytes.NewBuffer(data))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("unexpected status: %s", resp.Status)
-	}
-
-	return nil
+	http.Post(serverURL, "application/json", bytes.NewBuffer(data))
 }
 
 func main() {
@@ -105,13 +117,19 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Sentinel-OOB agent started:", hostID)
+	service := &sentinelService{
+		hostID: hostID,
+		stopCh: make(chan struct{}),
+	}
 
-	// Blocking heartbeat loop — service compatible
-	for {
-		if err := sendHeartbeat(hostID); err != nil {
-			panic(err)
-		}
-		time.Sleep(interval)
+	isService, err := svc.IsWindowsService()
+	if err != nil {
+		panic(err)
+	}
+
+	if isService {
+		svc.Run("SentinelOOB", service)
+	} else {
+		debug.Run("SentinelOOB", service)
 	}
 }
