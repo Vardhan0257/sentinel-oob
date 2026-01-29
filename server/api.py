@@ -2,7 +2,7 @@ from time import time
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from state import last_heartbeat, last_lock_state
+from server.state import last_heartbeat, last_lock_state
 
 app = FastAPI(title="Sentinel-OOB Server")
 
