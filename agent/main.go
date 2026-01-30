@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"syscall"
 	"time"
-
+	"unsafe"
 	"github.com/google/uuid"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/debug"
@@ -20,13 +20,19 @@ const (
 	interval     = 10 * time.Second
 )
 
-type Heartbeat struct {
-	HostID       string  `json:"host_id"`
-	Timestamp    float64 `json:"timestamp"`
-	Locked       bool    `json:"locked"`
-	Network      string  `json:"network"`
-	AgentVersion string  `json:"agent_version"`
+type LASTINPUTINFO struct {
+	CbSize uint32
+	DwTime uint32
 }
+
+type Heartbeat struct {
+	HostID           string  `json:"host_id"`
+	Timestamp        float64 `json:"timestamp"`
+	Locked           bool    `json:"locked"`
+	InactiveSeconds  int     `json:"inactive_seconds"`
+	AgentVersion     string  `json:"agent_version"`
+}
+
 
 type sentinelService struct {
 	hostID string
@@ -102,15 +108,20 @@ func getNetworkContext() string {
 func sendHeartbeat(hostID string) {
 	locked, err := isSessionLocked()
 	if err != nil {
-		return
+		locked = true // fail-safe: assume absent
 	}
+	inactive, err := getInactiveSeconds()
+	if err != nil {
+		inactive = -1 // fail-safe marker
+	}
+	println("inactive_seconds =", inactive)
 
 	hb := Heartbeat{
-		HostID:       hostID,
-		Timestamp:    float64(time.Now().Unix()),
-		Locked:       locked,
-		Network:      getNetworkContext(),
-		AgentVersion: agentVersion,
+		HostID:          hostID,
+		Timestamp:       float64(time.Now().Unix()),
+		Locked:          locked,
+		InactiveSeconds: inactive,
+		AgentVersion:    agentVersion,
 	}
 
 	data, err := json.Marshal(hb)
@@ -143,3 +154,29 @@ func main() {
 		debug.Run("SentinelOOB", service)
 	}
 }
+
+func getInactiveSeconds() (int, error) {
+	user32 := syscall.NewLazyDLL("user32.dll")
+	proc := user32.NewProc("GetLastInputInfo")
+
+	var info LASTINPUTINFO
+	info.CbSize = uint32(unsafe.Sizeof(info))
+
+	ret, _, err := proc.Call(uintptr(unsafe.Pointer(&info)))
+	if ret == 0 {
+		return 0, err
+	}
+
+	// GetTickCount64 gives ms since boot (same reference as DwTime)
+	kernel32 := syscall.NewLazyDLL("kernel32.dll")
+	getTick := kernel32.NewProc("GetTickCount64")
+
+	nowTicks, _, _ := getTick.Call()
+	now := uint64(nowTicks)
+
+
+	lastInput := uint64(info.DwTime)
+
+	return int((now - lastInput) / 1000), nil
+}
+
