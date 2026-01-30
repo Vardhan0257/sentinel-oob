@@ -19,7 +19,8 @@ class Heartbeat(BaseModel):
     locked: bool
     inactive_seconds: int
     agent_version: str
-
+    class Config:
+        extra = "ignore"
 
 @app.post("/heartbeat")
 def receive_heartbeat(hb: Heartbeat):
@@ -30,7 +31,7 @@ def receive_heartbeat(hb: Heartbeat):
     # v0.2 presence resolution
     if hb.inactive_seconds >= 60:
         presence_state[hb.host_id] = "ABSENT"
-    elif hb.locked is True:
+    elif hb.locked is True: 
         presence_state[hb.host_id] = "ABSENT"
     elif hb.locked is False:
         presence_state[hb.host_id] = "PRESENT"
