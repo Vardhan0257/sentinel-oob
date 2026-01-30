@@ -1,6 +1,8 @@
 import os
 import requests
 from server.telegram import send_telegram_alert
+from server.email import send_email_alert
+
 
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL")
 
@@ -25,6 +27,13 @@ def send_alert(message: str):
         delivered = True
     except Exception as e:
         print(f"[ALERT] telegram failed: {e}")
+
+    # Email delivery (v0.3)
+    try:
+        send_email_alert(message)
+        delivered = True
+    except Exception as e:
+        print(f"[ALERT] email failed: {e}")
 
     if not delivered:
         raise RuntimeError("Alert delivery failed on all channels")
