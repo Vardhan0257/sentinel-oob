@@ -1,5 +1,6 @@
 import os
 import requests
+import time
 from server.telegram import send_telegram_alert
 from server.email import send_email_alert
 
@@ -21,12 +22,15 @@ def send_alert(message: str):
         except Exception as e:
             print(f"[ALERT] webhook failed: {e}")
 
-    # Telegram delivery (v0.3)
-    try:
-        send_telegram_alert(message)
-        delivered = True
-    except Exception as e:
-        print(f"[ALERT] telegram failed: {e}")
+    # Telegram delivery with retry + backoff
+    for attempt in range(3):
+        try:
+            send_telegram_alert(message)
+            delivered = True
+            break
+        except Exception as e:
+            print(f"[ALERT] telegram attempt {attempt+1} failed: {e}")
+            time.sleep(2 ** attempt)
 
     # Email delivery (v0.3)
     try:
