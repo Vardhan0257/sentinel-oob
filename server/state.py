@@ -16,3 +16,6 @@ presence_state = {}
 
 # host_id -> network context (TRUSTED / UNTRUSTED / UNKNOWN)
 network_state = {}
+
+# host_id -> last reported inactivity seconds
+last_inactive_seconds = {}
