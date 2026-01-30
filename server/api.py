@@ -27,7 +27,10 @@ def receive_heartbeat(hb: Heartbeat):
     last_lock_state[hb.host_id] = hb.locked
     last_inactive_seconds[hb.host_id] = hb.inactive_seconds
 
-    if hb.locked is True:
+    # v0.2 presence resolution
+    if hb.inactive_seconds >= 60:
+        presence_state[hb.host_id] = "ABSENT"
+    elif hb.locked is True:
         presence_state[hb.host_id] = "ABSENT"
     elif hb.locked is False:
         presence_state[hb.host_id] = "PRESENT"
