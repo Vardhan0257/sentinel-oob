@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"fmt"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -12,6 +13,9 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/debug"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 )
 
 const (
@@ -31,6 +35,7 @@ type Heartbeat struct {
 	Locked           bool    `json:"locked"`
 	InactiveSeconds  int     `json:"inactive_seconds"`
 	AgentVersion     string  `json:"agent_version"`
+	Signature string `json:"signature"`
 }
 
 
@@ -105,6 +110,18 @@ func getNetworkContext() string {
 	return "UNTRUSTED"
 }
 
+func signHeartbeat(payload []byte) (string, error) {
+	secret := os.Getenv("SENTINEL_SHARED_SECRET")
+	if secret == "" {
+		return "", fmt.Errorf("SENTINEL_SHARED_SECRET not set")
+	}
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(payload)
+	return hex.EncodeToString(mac.Sum(nil)), nil
+}
+
+
 func sendHeartbeat(hostID string) {
 	locked, err := isSessionLocked()
 	if err != nil {
@@ -117,13 +134,28 @@ func sendHeartbeat(hostID string) {
 	println("inactive_seconds =", inactive)
 
 	hb := Heartbeat{
-		HostID:          hostID,
-		Timestamp:       float64(time.Now().Unix()),
-		Locked:          locked,
-		InactiveSeconds: inactive,
-		AgentVersion:    agentVersion,
+	HostID:          hostID,
+	Timestamp:       float64(time.Now().Unix()),
+	Locked:          locked,
+	InactiveSeconds: inactive,
+	AgentVersion:    agentVersion,
 	}
 
+	// Marshal unsigned payload
+	unsigned, err := json.Marshal(hb)
+	if err != nil {
+		return
+	}
+
+	// Sign
+	sig, err := signHeartbeat(unsigned)
+	if err != nil {
+		return
+	}
+
+	hb.Signature = sig
+
+	// Marshal signed payload
 	data, err := json.Marshal(hb)
 	if err != nil {
 		return
