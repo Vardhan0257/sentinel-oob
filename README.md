@@ -34,9 +34,9 @@ No trust in the endpoint once silence occurs.
 
 ```
 ┌──────────────┐         Signed Heartbeat         ┌──────────────────┐
-│ Windows Host │ ──────────────────────────────▶ │ Sentinel-OOB      │
-│ (Agent)      │                                  │ Server            │
-│              │ ◀──── Out-of-Band Alerts ─────── │ (Watchman)        │
+│ Windows Host │ ──────────────────────────────▶ │ Sentinel-OOB     │
+│ (Agent)      │                                  │ Server           │
+│              │ ◀──── Out-of-Band Alerts ───────│ (Watchman)       │
 └──────────────┘                                  └──────────────────┘
 ```
 
