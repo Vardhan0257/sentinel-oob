@@ -1,4 +1,4 @@
-# Sentinel-OOB Agent (v0.1)
+# Sentinel-OOB Agent (v0.4)
 
 ## Purpose
 A dumb, noisy endpoint process that emits heartbeats.
@@ -7,7 +7,7 @@ Silence equals failure.
 ## Technology
 - Language: Go
 - Target OS: Windows
-- Form: Console app (service later)
+- Form: Console app (debug) or Windows service
 
 ## Startup Contract
 - Starts immediately
