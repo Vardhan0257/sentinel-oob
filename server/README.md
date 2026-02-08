@@ -1,11 +1,11 @@
-# Sentinel-OOB Server (v0.1)
+# Sentinel-OOB Server (v0.4)
 
 ## Purpose
 Act as the remote watchman that detects endpoint silence and escalates alerts.
 
 ## Technology Choice
 - Language: Python
-- Reason: fast iteration, clear logic, sufficient for v0.1
+- Reason: fast iteration, clear logic, sufficient for v0.4
 
 ## Responsibilities
 - Receive heartbeat packets

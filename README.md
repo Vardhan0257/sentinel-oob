@@ -16,7 +16,7 @@ Instead of relying on local alerts, logs, or dashboards that malware can suppres
 * Assumes **endpoint compromise is possible**
 * Assumes **local alerts cannot be trusted**
 
-This is a **dead-man’s switch for endpoints**.
+This is a **dead-man's switch for endpoints**.
 
 ---
 
@@ -24,9 +24,7 @@ This is a **dead-man’s switch for endpoints**.
 
 > **If a protected endpoint goes silent while the user is absent, assume compromise.**
 
-No malware classification.
-No behavior modeling.
-No trust in the endpoint once silence occurs.
+No malware classification. No behavior modeling. No trust in the endpoint once silence occurs.
 
 ---
 
@@ -48,8 +46,7 @@ No trust in the endpoint once silence occurs.
 
 Runs as a **Windows Service** and periodically emits signed telemetry.
 
-Collected signals:
-
+**Collected signals:**
 * Stable `host_id`
 * Heartbeat timestamp
 * Session lock state
@@ -58,8 +55,7 @@ Collected signals:
 * Agent version
 * **HMAC signature (tamper resistance)**
 
-The agent:
-
+**Agent properties:**
 * Has **no local UI**
 * Has **no local alerts**
 * Cannot suppress escalation once silent
@@ -70,8 +66,7 @@ The agent:
 
 Acts as a **paranoid remote watchman**.
 
-Responsibilities:
-
+**Responsibilities:**
 * Verify HMAC-signed heartbeats
 * Track last-seen state per host
 * Infer **presence** from lock + inactivity
@@ -79,8 +74,7 @@ Responsibilities:
 * Escalate via out-of-band channels
 * Maintain off-host audit records
 
-Non-responsibilities:
-
+**Non-responsibilities:**
 * Malware detection
 * Dashboards
 * Endpoint trust
@@ -90,7 +84,7 @@ Non-responsibilities:
 
 ## Detection Logic
 
-### Presence Resolution (v0.2)
+### Presence Resolution
 
 A host is considered **ABSENT** if **any** of the following are true:
 
@@ -102,7 +96,7 @@ Otherwise: **PRESENT**
 
 ---
 
-### Silence Rule (Core)
+### Silence Rule
 
 An alert is triggered if:
 
@@ -133,8 +127,7 @@ Alerts are **one-shot per incident** (no storms).
 
 ## Alerting (Out-of-Band)
 
-Supported channels:
-
+**Supported channels:**
 * Telegram (primary)
 * Email (SMTP)
 * Generic Webhook
@@ -167,18 +160,16 @@ This system is **detection-first**, not prevention.
 
 ---
 
-## Threat Model (Summary)
+## Threat Model
 
-Assumed attacker capabilities:
-
+**Assumed attacker capabilities:**
 * Kill processes
 * Disable Defender
 * Block UI alerts
 * Tamper with local logs
 * Delay network traffic
 
-Assumed attacker limitations:
-
+**Assumed attacker limitations:**
 * Cannot forge valid HMAC signatures
 * Cannot suppress off-host alerts
 * Cannot fake silence without detection
@@ -187,57 +178,59 @@ Assumed attacker limitations:
 
 ## Version History
 
-### v0.1 — Dead-Man’s Switch
-
-* Heartbeat liveness
-* Silence detection
-* Webhook escalation
-
-### v0.2 — Context Awareness
-
-* Presence inference
-* Inactivity heuristic
-* Network trust signal
-
-### v0.3 — Transport Expansion
-
-* Telegram alerts
-* Email alerts
-* Retry & backoff
-
-### v0.4 — Integrity & Audit
-
-* HMAC-signed telemetry
-* Off-host audit hooks
-* Tamper-evident alert trail
-
-**Current Release:** `v0.4-final`
+| Version | Focus | Status |
+|---------|-------|--------|
+| v0.1 | Dead-Man's Switch (heartbeat, silence detection, webhook escalation) | Archived |
+| v0.2 | Context Awareness (presence inference, inactivity heuristic, network trust) | Archived |
+| v0.3 | Transport Expansion (Telegram, email alerts, retry & backoff) | Archived |
+| v0.4 | Integrity & Audit (HMAC-signed telemetry, off-host audit, tamper-evident logs) | Current |
 
 ---
 
-## Why This Is Different
+## Project Structure
 
-Most security tools ask:
-
-> “What does the endpoint say is happening?”
-
-Sentinel-OOB asks:
-
-> **“Why did the endpoint stop speaking?”**
-
-That shift is the entire system.
-
----
-
-## Project Status
-
-🔒 **Feature-locked**
-📌 **Code-frozen at v0.4**
-🧠 **Threat model & adversarial testing in progress**
+```
+sentinel-oob/
+├── agent/                 # Go-based Windows agent
+├── server/                # Python FastAPI server
+├── docs/                  # Documentation
+│   ├── specs/             # Architecture and protocols
+│   ├── tests/             # Validation tests
+│   └── releases/          # Version changelogs
+├── bin/                   # Build outputs
+├── CHANGELOG.md           # Project changelog
+├── CONTRIBUTING.md        # Contribution guidelines
+└── Makefile               # Build and run tasks
+```
 
 ---
 
-## Author Intent
+## Quick Start
+
+1. Set `SENTINEL_HMAC_SECRET` environment variable.
+2. Configure alert channels (webhook, Telegram, email).
+3. Run server: `make run-server`
+4. Run agent: `make run-agent`
+
+See [docs/README.md](docs/README.md) for detailed documentation.
+
+## Roadmap
+
+### v0.4 — Integrity & Audit Hardening (Current)
+- Off-host append-only audit records
+- Signed heartbeat messages
+- Tamper-evident server logs
+- Documented attacker evasion tests
+- Adversarial validation completed
+
+### Future
+- Multi-platform agents
+- Advanced presence detection
+- Enterprise integrations
+
+---
+
+## Design Philosophy
 
 This project is designed to:
 
@@ -245,4 +238,3 @@ This project is designed to:
 * Fail loudly instead of silently
 * Be understandable under incident pressure
 * Trade complexity for reliability
-
